@@ -90,7 +90,7 @@ export default async function HomePage() {
                         <span className="text-blue-600">zâmbetului lor.</span>
                     </h1>
                     <p className="text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed font-light">
-                        Citește scrisorile copiilor către Moș Crăciun sau Iepuraș și ajută-i să primească exact ce își doresc. Simplu, direct și verificat.
+                        În spatele fiecărei scrisori este un copil cu o dorință simplă și o speranță mare. Alege o scrisoare și transformă un vis scris pe hârtie într-un moment adevărat de bucurie.
                     </p>
 
                     {/* Trust Microcopy */}
