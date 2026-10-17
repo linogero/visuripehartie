@@ -78,11 +78,13 @@ async function sendViaResend({
     subject,
     html,
     kind,
+    replyTo,
 }: {
     to: string
     subject: string
     html: string
     kind: AuthEmailKind | string
+    replyTo?: string
 }) {
     const { from } = requireEmailConfig()
     const resend = getResendClient()
@@ -96,6 +98,7 @@ async function sendViaResend({
         to,
         subject,
         html,
+        ...(replyTo ? { replyTo } : {}),
     })
 
     if (error) {
@@ -338,9 +341,10 @@ interface EmailData {
     to: string
     template: EmailTemplate
     data: Record<string, unknown>
+    replyTo?: string
 }
 
-export async function sendEmail({ to, template, data }: EmailData) {
+export async function sendEmail({ to, template, data, replyTo }: EmailData) {
     let subject = ""
     let html = ""
 
@@ -365,10 +369,15 @@ export async function sendEmail({ to, template, data }: EmailData) {
             subject = "Scrisoare Respinsă - Necesită modificări"
             html = `<p>Scrisoarea pentru ${data.childName} a fost respinsă. Motiv: ${data.reason}</p>`
             break
-        case "CONTACT_FORM":
-            subject = `[Contact] ${data.subject}`
-            html = `<p><strong>De la:</strong> ${data.name} &lt;${data.email}&gt;</p><p><strong>Subiect:</strong> ${data.subject}</p><p><strong>Mesaj:</strong></p><p>${String(data.message || "").replace(/\n/g, "<br>")}</p>`
+        case "CONTACT_FORM": {
+            const name = escapeHtml(data.name)
+            const email = escapeHtml(data.email)
+            const contactSubject = escapeHtml(data.subject)
+            const message = escapeHtml(data.message).replace(/\n/g, "<br>")
+            subject = `[Contact] ${String(data.subject ?? "")}`
+            html = `<p><strong>De la:</strong> ${name} &lt;${email}&gt;</p><p><strong>Email:</strong> ${email}</p><p><strong>Subiect:</strong> ${contactSubject}</p><p><strong>Mesaj:</strong></p><p>${message}</p>`
             break
+        }
         case "ADMIN_NEW_PARTNER":
             subject = "Instituție nouă de verificat"
             html = `<p>O instituție nouă așteaptă aprobare: <strong>${data.name}</strong> (${data.email}).</p>`
@@ -379,5 +388,5 @@ export async function sendEmail({ to, template, data }: EmailData) {
 
     if (!subject || !html) return
 
-    await sendViaResend({ to, subject, html, kind: template })
+    await sendViaResend({ to, subject, html, kind: template, replyTo })
 }

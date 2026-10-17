@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma"
 import { pageMetadata } from "@/lib/seo/metadata"
+import { ContactForm } from "@/components/forms/contact-form"
+import { Users2, Target, Heart, Scale } from "lucide-react"
 
 export const metadata = pageMetadata({
     title: "Despre Asociația pentru visuri și oportunități",
@@ -8,7 +10,6 @@ export const metadata = pageMetadata({
     path: "/despre",
     keywords: ["asociație", "CUI 55406686", "ONG București"],
 })
-import { Users2, Target, Heart, Scale } from "lucide-react"
 
 export default async function DesprePage() {
     const team = await prisma.teamMember.findMany({
@@ -81,6 +82,36 @@ export default async function DesprePage() {
                                 <p className="text-sm text-slate-500">{m.title}</p>
                             </div>
                         ))}
+                    </div>
+                </div>
+            </section>
+
+            <section
+                id="contact"
+                className="scroll-mt-20 border-t bg-slate-50 py-20 px-4"
+                aria-labelledby="contact-heading"
+            >
+                <div className="container mx-auto max-w-xl min-w-0">
+                    <div className="mb-8 text-center space-y-3">
+                        <h2 id="contact-heading" className="text-3xl font-bold text-slate-900">
+                            Contact
+                        </h2>
+                        <p className="text-slate-500 leading-relaxed">
+                            Ai o întrebare, o propunere de parteneriat sau feedback? Scrie-ne și îți răspundem cât de curând putem.
+                        </p>
+                        <p className="text-sm text-slate-500">
+                            Email:{" "}
+                            <a
+                                href="mailto:contact@visuripehartie.ro"
+                                className="font-medium text-teal-700 hover:text-teal-800"
+                            >
+                                contact@visuripehartie.ro
+                            </a>
+                        </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8 shadow-sm min-w-0">
+                        <ContactForm />
                     </div>
                 </div>
             </section>

@@ -66,7 +66,12 @@ const FAQ_ITEMS_REFINED = [
     { q: "Pot cumpăra eu cadoul?", a: "Sigur! Poți rezerva o dorință și să trimiți pachetul personal. Noi îți dăm detaliile de livrare imediat după rezervare." },
     { q: "Ce este un 'Matching'?", a: "E magie! ✨ O companie sponsor alege să dubleze donațiile. Dacă tu donezi 50 lei, ei pun încă 50 lei." },
     { q: "Pot ajuta lunar?", a: "Da. Donația lunară este un abonament Stripe de 10, 25 sau 50 lei, separat de cadoul pentru o scrisoare. Îl poți opri oricând." },
-    { q: "Ce fac dacă am o întrebare?", a: "Scrie-ne oricând. Suntem doar doi oameni, dar răspundem cât de repede putem!" }
+    {
+        q: "Ce fac dacă am o întrebare?",
+        a: "Dacă ai orice întrebare, ne poți scrie folosind formularul de contact din pagina Despre. Îți vom răspunde cât de curând putem.",
+        linkHref: "/despre#contact",
+        linkText: "pagina Despre",
+    },
 ]
 
 export default async function HomePage() {
@@ -132,7 +137,7 @@ export default async function HomePage() {
             {/* Featured Letters */}
             <section className="py-24 container mx-auto px-4">
                 <div className="text-center mb-16 max-w-2xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">Urgențe și Povesti Noi</h2>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">Povești Noi</h2>
                     <p className="text-slate-500 text-lg">Câteva dintre scrisorile care au nevoie de ajutor chiar acum. Alege o poveste care rezonează cu tine.</p>
                 </div>
 
@@ -174,17 +179,41 @@ export default async function HomePage() {
                     </div>
 
                     <div className="grid gap-5">
-                        {FAQ_ITEMS_REFINED.map((item, idx) => (
+                        {FAQ_ITEMS_REFINED.map((item, idx) => {
+                            const linkHref = "linkHref" in item ? item.linkHref : undefined
+                            const linkText = "linkText" in item ? item.linkText : undefined
+                            const parts =
+                                linkHref && linkText && item.a.includes(linkText)
+                                    ? item.a.split(linkText)
+                                    : null
+
+                            return (
                             <div key={idx} className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-100 shadow-sm shadow-slate-200/50 hover:border-slate-200 hover:shadow-md transition-all text-left">
                                 <div className="flex gap-4 sm:gap-5">
                                     <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--pastel-blue)] text-blue-600 font-bold text-sm flex items-center justify-center" aria-hidden>?</span>
                                     <div className="min-w-0">
                                         <h3 className="font-bold text-slate-900 text-base sm:text-lg mb-2 leading-snug">{item.q}</h3>
-                                        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">{item.a}</p>
+                                        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                                            {parts ? (
+                                                <>
+                                                    {parts[0]}
+                                                    <Link
+                                                        href={linkHref!}
+                                                        className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800"
+                                                    >
+                                                        {linkText}
+                                                    </Link>
+                                                    {parts[1]}
+                                                </>
+                                            ) : (
+                                                item.a
+                                            )}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 </div>
             </section>

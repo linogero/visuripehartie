@@ -4,36 +4,45 @@ import prisma from "@/lib/prisma"
 import { sendEmail } from "@/lib/email"
 
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "contact@visuripehartie.ro"
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function submitContactForm(formData: FormData) {
-    const name = formData.get("name") as string
-    const email = formData.get("email") as string
-    const subject = formData.get("subject") as string
-    const message = formData.get("message") as string
+    const name = String(formData.get("name") ?? "").trim()
+    const email = String(formData.get("email") ?? "").trim()
+    const subject = String(formData.get("subject") ?? "").trim()
+    const message = String(formData.get("message") ?? "").trim()
 
-    if (!name?.trim() || !email?.trim() || !subject?.trim() || !message?.trim()) {
-        return { ok: false, error: "Toate câmpurile sunt obligatorii." }
+    if (!name || !email || !subject || !message) {
+        return { ok: false as const, error: "Toate câmpurile sunt obligatorii." }
+    }
+
+    if (!EMAIL_RE.test(email)) {
+        return { ok: false as const, error: "Te rugăm să introduci o adresă de email validă." }
     }
 
     try {
         await prisma.contactSubmission.create({
-            data: { name: name.trim(), email: email.trim(), subject: subject.trim(), message: message.trim() }
+            data: { name, email, subject, message },
         })
     } catch (e) {
         console.error("Contact submission save failed", e)
-        return { ok: false, error: "Eroare la salvare. Încercați din nou." }
+        return { ok: false as const, error: "Eroare la salvare. Încercați din nou." }
     }
 
     try {
         await sendEmail({
             to: CONTACT_EMAIL,
             template: "CONTACT_FORM",
-            data: { name: name.trim(), email: email.trim(), subject: subject.trim(), message: message.trim() }
+            replyTo: email,
+            data: { name, email, subject, message },
         })
     } catch (e) {
         console.error("Contact email send failed", e)
-        // Submission is saved; email may be retried later
+        return {
+            ok: false as const,
+            error: "Nu am putut trimite mesajul acum. Încearcă din nou sau scrie-ne la contact@visuripehartie.ro.",
+        }
     }
 
-    return { ok: true }
+    return { ok: true as const }
 }
