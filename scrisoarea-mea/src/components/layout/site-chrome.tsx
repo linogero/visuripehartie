@@ -14,11 +14,11 @@ export async function SiteHeader() {
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/95 shadow-sm shadow-slate-200/50 backdrop-blur-md">
-            <div className="container mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+            <div className="container mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
                 <Link
                     href="/"
                     aria-label="Visuri pe hartie – Acasă"
-                    className="flex items-center shrink-0 min-h-[44px] -ml-1 sm:ml-0"
+                    className="flex items-center shrink min-w-0 min-h-[44px] -ml-1 sm:ml-0"
                 >
                     <Image
                         src={LOGO_SRC}
@@ -26,11 +26,11 @@ export async function SiteHeader() {
                         width={LOGO_WIDTH}
                         height={LOGO_HEIGHT}
                         priority
-                        className="h-auto w-auto max-h-10 sm:max-h-12 md:max-h-[3.25rem] max-w-[min(48vw,150px)] sm:max-w-[180px] md:max-w-[200px] object-contain"
+                        className="h-auto w-auto max-h-10 sm:max-h-12 md:max-h-[3.25rem] max-w-[min(34vw,118px)] sm:max-w-[180px] md:max-w-[200px] object-contain"
                     />
                 </Link>
 
-                <div className="flex items-center gap-1 sm:gap-2 md:gap-6 flex-1 justify-end min-w-0">
+                <div className="flex items-center gap-1 sm:gap-2 md:gap-6 flex-none justify-end">
                     <HeaderNavClient session={session ? { email: session.email, role: session.role } : null} />
                 </div>
             </div>

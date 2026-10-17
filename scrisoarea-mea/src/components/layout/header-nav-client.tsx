@@ -102,7 +102,7 @@ export function HeaderNavClient({ session }: { session: Session }) {
         ))}
       </nav>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         {session ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -163,24 +163,32 @@ export function HeaderNavClient({ session }: { session: Session }) {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <div className="hidden md:flex items-center gap-2">
-            <Button asChild variant="ghost" className="text-slate-600 hover:text-teal-700 min-h-[44px]">
-              <Link href="/partner/login">Portal Instituții</Link>
-            </Button>
+          <>
             <Button
               asChild
-              className="bg-[var(--brand)] hover:bg-teal-600 text-[var(--brand-foreground)] shadow-md shadow-teal-900/15 rounded-full px-5 sm:px-6 min-h-[44px] font-semibold text-sm"
+              className="md:hidden shrink-0 bg-[var(--brand)] hover:bg-teal-600 text-[var(--brand-foreground)] shadow-md shadow-teal-900/15 rounded-full px-3.5 min-h-10 h-10 font-semibold text-sm"
             >
-              <Link href="/login">Intră în cont</Link>
+              <Link href="/login">Cont</Link>
             </Button>
-          </div>
+            <div className="hidden md:flex items-center gap-2">
+              <Button asChild variant="ghost" className="text-slate-600 hover:text-teal-700 min-h-[44px]">
+                <Link href="/partner/login">Portal Instituții</Link>
+              </Button>
+              <Button
+                asChild
+                className="bg-[var(--brand)] hover:bg-teal-600 text-[var(--brand-foreground)] shadow-md shadow-teal-900/15 rounded-full px-5 sm:px-6 min-h-[44px] font-semibold text-sm"
+              >
+                <Link href="/login">Intră în cont</Link>
+              </Button>
+            </div>
+          </>
         )}
 
         <button
           type="button"
           aria-label="Deschide meniul"
           aria-expanded={open}
-          className="md:hidden flex items-center justify-center w-11 h-11 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+          className="md:hidden flex items-center justify-center w-11 h-11 shrink-0 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
           onClick={() => setOpen(true)}
         >
           <Menu className="w-6 h-6" />
