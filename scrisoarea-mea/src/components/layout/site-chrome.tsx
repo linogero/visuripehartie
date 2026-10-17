@@ -26,7 +26,7 @@ export async function SiteHeader() {
                         width={LOGO_WIDTH}
                         height={LOGO_HEIGHT}
                         priority
-                        className="h-8 sm:h-9 md:h-10 w-auto max-w-[min(52vw,220px)] sm:max-w-[260px] object-contain"
+                        className="h-auto w-auto max-h-10 sm:max-h-12 md:max-h-[3.25rem] max-w-[min(48vw,150px)] sm:max-w-[180px] md:max-w-[200px] object-contain"
                     />
                 </Link>
 
