@@ -21,9 +21,13 @@ function slugify(text: string) {
 }
 
 async function signOutAndGoHome() {
-    await auth.api.signOut({
-        headers: await headers(),
-    })
+    try {
+        await auth.api.signOut({
+            headers: await headers(),
+        })
+    } catch (error) {
+        console.error("signOut failed", error)
+    }
     redirect("/")
 }
 

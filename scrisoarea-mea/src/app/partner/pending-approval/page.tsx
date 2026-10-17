@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { logoutPartner } from "@/app/actions/auth-actions"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { PartnerLogoutButton } from "@/components/partner/partner-logout-button"
 import {
     Card,
     CardContent,
@@ -82,11 +81,7 @@ export default async function PartnerPendingApprovalPage() {
                     </p>
                 </CardContent>
                 <CardFooter>
-                    <form action={logoutPartner}>
-                        <Button type="submit" variant="outline">
-                            Ieșire din cont
-                        </Button>
-                    </form>
+                    <PartnerLogoutButton variant="outline" size="default" />
                 </CardFooter>
             </Card>
         </main>

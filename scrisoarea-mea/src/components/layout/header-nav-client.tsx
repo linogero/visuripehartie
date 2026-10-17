@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { User, Menu, X, LogOut, LayoutDashboard } from "lucide-react"
-import { logout, logoutAdmin, logoutPartner } from "@/app/actions/auth-actions"
+import { logout, logoutAdmin } from "@/app/actions/auth-actions"
+import { authClient } from "@/lib/auth-client"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,8 +88,16 @@ export function HeaderNavClient({ session }: { session: Session }) {
   }, [open])
 
   async function handleLogout() {
+    if (session?.role === "PARTNER") {
+      try {
+        await authClient.signOut()
+      } catch (error) {
+        console.error("Partner signOut failed", error)
+      }
+      window.location.assign("/")
+      return
+    }
     if (session?.role === "ADMIN") await logoutAdmin()
-    else if (session?.role === "PARTNER") await logoutPartner()
     else await logout()
   }
 

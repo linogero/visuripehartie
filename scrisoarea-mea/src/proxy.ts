@@ -2,12 +2,17 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 
-function withPathname(request: NextRequest) {
+function withPathname(request: NextRequest, options?: { noStore?: boolean }) {
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set("x-pathname", request.nextUrl.pathname)
-    return NextResponse.next({
+    const response = NextResponse.next({
         request: { headers: requestHeaders },
     })
+    if (options?.noStore) {
+        response.headers.set("Cache-Control", "private, no-store, no-cache, must-revalidate")
+        response.headers.set("Pragma", "no-cache")
+    }
+    return response
 }
 
 const SEO_PATHS = new Set([
@@ -90,7 +95,7 @@ export async function proxy(request: NextRequest) {
         if (!emailVerified && pathname !== "/partner/pending-approval") {
             return NextResponse.redirect(new URL("/verify-email?portal=partner", request.url))
         }
-        return withPathname(request)
+        return withPathname(request, { noStore: true })
     }
 
     if (pathname.startsWith("/profil")) {

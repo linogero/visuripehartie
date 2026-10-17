@@ -1,10 +1,9 @@
-import { logoutPartner } from "@/app/actions/auth-actions"
 import { headers } from "next/headers"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { PartnerLogoutButton } from "@/components/partner/partner-logout-button"
 
 export default async function PartnerLayout({
     children,
@@ -52,11 +51,7 @@ export default async function PartnerLayout({
                         Adaugă Scrisoare
                     </Link>
                 </nav>
-                <form action={logoutPartner}>
-                    <Button variant="ghost" size="sm" type="submit">
-                        Ieșire
-                    </Button>
-                </form>
+                <PartnerLogoutButton variant="ghost" size="sm" />
             </header>
             <main className="p-6 max-w-7xl mx-auto">{children}</main>
         </div>
