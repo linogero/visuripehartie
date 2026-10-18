@@ -36,29 +36,38 @@ export function ExternalFulfillmentPanel({ preview }: { preview: Preview }) {
 
     function submit() {
         startTransition(async () => {
-            const fd = new FormData()
-            fd.set("letterId", preview.id)
-            fd.set("note", note)
-            if (confirmFullyFunded) fd.set("confirmFullyFunded", "1")
-            const result = await markLetterExternallyFulfilled(fd)
-            if (!result.ok) {
-                if ("needsFullyFundedConfirm" in result && result.needsFullyFundedConfirm) {
-                    setConfirmFullyFunded(true)
-                    toast.warning(result.error)
+            try {
+                const fd = new FormData()
+                fd.set("letterId", preview.id)
+                fd.set("note", note)
+                if (confirmFullyFunded) fd.set("confirmFullyFunded", "1")
+                const result = await markLetterExternallyFulfilled(fd)
+                if (!result || !result.ok) {
+                    if (result && "needsFullyFundedConfirm" in result && result.needsFullyFundedConfirm) {
+                        setConfirmFullyFunded(true)
+                        toast.warning(result.error)
+                        return
+                    }
+                    toast.error(result?.error || "Acțiunea a eșuat. Încearcă din nou.")
                     return
                 }
-                toast.error(result.error)
-                return
+                toast.success(
+                    result.alreadyDone
+                        ? "Dorința era deja îndeplinită extern."
+                        : result.transferred > 0
+                          ? `Îndeplinită extern. ${formatCurrency(result.transferred)} transferați în fond.`
+                          : "Dorință marcată ca îndeplinită extern."
+                )
+                setOpen(false)
+                window.location.reload()
+            } catch (e) {
+                console.error(e)
+                toast.error(
+                    e instanceof Error
+                        ? e.message
+                        : "Eroare neașteptată la îndeplinirea externă."
+                )
             }
-            toast.success(
-                result.alreadyDone
-                    ? "Dorința era deja îndeplinită extern."
-                    : result.transferred > 0
-                      ? `Îndeplinită extern. ${formatCurrency(result.transferred)} transferați în fond.`
-                      : "Dorință marcată ca îndeplinită extern."
-            )
-            setOpen(false)
-            window.location.reload()
         })
     }
 

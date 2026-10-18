@@ -13,12 +13,13 @@ import { publicTargetAmount } from "@/lib/letter-moderation"
 
 async function requireAdmin() {
     const session = await getSession()
-    if (session?.role !== "ADMIN") throw new Error("Unauthorized")
+    if (!session || session.role !== "ADMIN") return null
     return session
 }
 
 export async function getExternalFulfillmentPreview(letterId: string) {
-    await requireAdmin()
+    const admin = await requireAdmin()
+    if (!admin) return { ok: false as const, error: "Neautorizat. Reautentifică-te ca admin." }
     const letter = await prisma.scrisoare.findUnique({
         where: { id: letterId },
         include: { institution: { select: { publicName: true, name: true } } },
@@ -46,6 +47,7 @@ export async function getExternalFulfillmentPreview(letterId: string) {
 
 export async function markLetterExternallyFulfilled(formData: FormData) {
     const admin = await requireAdmin()
+    if (!admin) return { ok: false as const, error: "Neautorizat. Reautentifică-te ca admin." }
     const letterId = String(formData.get("letterId") || "")
     const note = String(formData.get("note") || "")
     const confirmFullyFunded = formData.get("confirmFullyFunded") === "1"
@@ -61,12 +63,14 @@ export async function markLetterExternallyFulfilled(formData: FormData) {
             })
         )
 
+        const slug = result.letter.slug
         revalidatePath("/admin/scrisori")
         revalidatePath(`/admin/scrisori/${letterId}`)
         revalidatePath("/admin/fond")
         revalidatePath("/fond")
         revalidatePath("/scrisori")
         revalidatePath(`/scrisori/${letterId}`)
+        if (slug) revalidatePath(`/scrisori/${slug}`)
 
         return {
             ok: true as const,
@@ -74,6 +78,7 @@ export async function markLetterExternallyFulfilled(formData: FormData) {
             transferred: result.transferred,
         }
     } catch (e) {
+        console.error("[fund] markLetterExternallyFulfilled failed", e)
         const message = e instanceof Error ? e.message : "Eroare la îndeplinirea externă."
         if (message.startsWith("FULLY_FUNDED_WARNING:")) {
             return {
@@ -88,6 +93,7 @@ export async function markLetterExternallyFulfilled(formData: FormData) {
 
 export async function allocateFromGeneralFund(formData: FormData) {
     const admin = await requireAdmin()
+    if (!admin) return { ok: false as const, error: "Neautorizat. Reautentifică-te ca admin." }
     const letterId = String(formData.get("letterId") || "")
     const amount = Number(formData.get("amount"))
     const note = String(formData.get("note") || "")
@@ -117,7 +123,8 @@ export async function allocateFromGeneralFund(formData: FormData) {
 }
 
 export async function getEligibleLettersForFundAllocation() {
-    await requireAdmin()
+    const admin = await requireAdmin()
+    if (!admin) throw new Error("Unauthorized")
     await ensureGeneralFund()
     const balances = await getFundBalances()
     const letters = await prisma.scrisoare.findMany({

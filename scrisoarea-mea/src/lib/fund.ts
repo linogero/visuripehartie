@@ -117,21 +117,12 @@ export async function markExternallyFulfilledInTx(
     })
     if (!letter) throw new Error("Scrisoare inexistentă.")
 
-    if (
-        letter.moderationStatus === "externally_fulfilled" ||
-        letter.status === "EXTERN_FULFILLED" ||
-        letter.externallyFulfilledAt
-    ) {
-        return { letter, transferred: 0, alreadyDone: true as const }
-    }
-
     const target = publicTargetAmount(letter)
     const collected = Number(letter.collectedAmount)
-    if (collected >= target && collected > 0 && !input.confirmFullyFunded) {
-        throw new Error(
-            "FULLY_FUNDED_WARNING: Dorința este deja complet finanțată. Confirmă explicit dacă vrei totuși îndeplinire externă."
-        )
-    }
+    const alreadyMarked =
+        letter.moderationStatus === "externally_fulfilled" ||
+        letter.status === "EXTERN_FULFILLED" ||
+        Boolean(letter.externallyFulfilledAt)
 
     const fund = await tx.fund.upsert({
         where: { slug: GENERAL_FUND_SLUG },
@@ -150,6 +141,51 @@ export async function markExternallyFulfilledInTx(
             ? `${formatRon(collected)} transferați din dorința «${wishLabel}». Dorința a fost îndeplinită direct de un donator.`
             : `Dorința «${wishLabel}» a fost îndeplinită extern, fără sumă de transferat.`
 
+    const idempotencyKey = `external_fulfillment:${letter.id}`
+
+    // Repair path: status set earlier but ledger row missing (e.g. schema race).
+    if (alreadyMarked) {
+        if (collected <= 0) {
+            return { letter, transferred: 0, alreadyDone: true as const }
+        }
+        const existing = await tx.fundTransaction.findUnique({
+            where: { idempotencyKey },
+        })
+        if (existing) {
+            return { letter, transferred: 0, alreadyDone: true as const }
+        }
+        await tx.fundTransaction.create({
+            data: {
+                fundId: fund.id,
+                type: FundTxType.EXTERNAL_FULFILLMENT_TRANSFER,
+                direction: FundDirection.IN,
+                amount: collected,
+                sourceLetterId: letter.id,
+                note: input.note?.trim() || "Reparare transfer lipsă",
+                publicNote,
+                createdById: input.adminId,
+                idempotencyKey,
+            },
+        })
+        await tx.actionLog.create({
+            data: {
+                actorType: "ADMIN",
+                actorId: input.adminId,
+                actionType: "LETTER_EXTERNALLY_FULFILLED_REPAIR",
+                targetType: "SCRISOARE",
+                targetId: letter.id,
+                metadata: JSON.stringify({ transferred: collected, collected, repaired: true }),
+            },
+        })
+        return { letter, transferred: collected, alreadyDone: false as const }
+    }
+
+    if (collected >= target && collected > 0 && !input.confirmFullyFunded) {
+        throw new Error(
+            "FULLY_FUNDED_WARNING: Dorința este deja complet finanțată. Confirmă explicit dacă vrei totuși îndeplinire externă."
+        )
+    }
+
     await tx.scrisoare.update({
         where: { id: letter.id },
         data: {
@@ -163,7 +199,6 @@ export async function markExternallyFulfilledInTx(
 
     let transferred = 0
     if (collected > 0) {
-        const idempotencyKey = `external_fulfillment:${letter.id}`
         const existing = await tx.fundTransaction.findUnique({
             where: { idempotencyKey },
         })
