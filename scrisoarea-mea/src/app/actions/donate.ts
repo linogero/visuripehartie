@@ -61,8 +61,11 @@ export async function startStripeDonation(formData: FormData): Promise<StartResu
     if (!canDonate(session, letter)) {
         return fail("Nu poți dona pentru această scrisoare.")
     }
-    if (["FINANTAT", "INCHIS", "LIVRAT", "IN_ACHIZITIE"].includes(letter.status)) {
-        return fail("Această scrisoare este deja finanțată sau închisă.")
+    if (
+        ["FINANTAT", "INCHIS", "LIVRAT", "IN_ACHIZITIE", "EXTERN_FULFILLED"].includes(letter.status) ||
+        letter.moderationStatus === "externally_fulfilled"
+    ) {
+        return fail("Această scrisoare este deja finanțată, închisă sau îndeplinită extern.")
     }
 
     const reserved = letter.reservations.reduce((acc, reservation) => acc + Number(reservation.amount), 0)

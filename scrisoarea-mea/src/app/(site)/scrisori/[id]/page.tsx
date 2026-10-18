@@ -20,9 +20,11 @@ import { canManageLetter } from "@/lib/permissions"
 import {
     LetterModeration,
     isApprovedPublic,
+    isExternallyFulfilled,
     normalizeModerationStatus,
     publicTargetAmount,
 } from "@/lib/letter-moderation"
+import { getFundAllocatedToLetter } from "@/lib/fund"
 import { parseWishlistItems, publicItemPrice } from "@/lib/letter-items"
 
 import PartnerActionsPanel from "@/components/partner-actions-panel"
@@ -35,7 +37,12 @@ export async function generateStaticParams() {
         const letters = await prisma.scrisoare.findMany({
             where: {
                 moderationStatus: {
-                    in: [LetterModeration.APPROVED, LetterModeration.FULFILLED, "APPROVED"],
+                    in: [
+                        LetterModeration.APPROVED,
+                        LetterModeration.FULFILLED,
+                        LetterModeration.EXTERNALLY_FULFILLED,
+                        "APPROVED",
+                    ],
                 },
             },
             select: { slug: true, id: true },
@@ -138,11 +145,15 @@ export default async function ScrisoarePage({ params }: { params: Promise<{ id: 
     // Non-approved letters are not publicly accessible (404), except owner/admin preview
     const publiclyVisible =
         moderation === LetterModeration.APPROVED ||
-        moderation === LetterModeration.FULFILLED
+        moderation === LetterModeration.FULFILLED ||
+        moderation === LetterModeration.EXTERNALLY_FULFILLED
 
     if (!publiclyVisible && !isStaffOrOwner) {
         notFound()
     }
+
+    const externallyFulfilled = isExternallyFulfilled(letter)
+    const fundAllocated = await getFundAllocatedToLetter(letter.id)
 
     const jsonLd = generateLetterSchema({
         ...letter,
@@ -192,11 +203,17 @@ export default async function ScrisoarePage({ params }: { params: Promise<{ id: 
     const totalOccupied = paid + reserved
     const remaining = Math.max(0, target - totalOccupied)
     const percentage = target > 0 ? Math.min(100, Math.round((totalOccupied / target) * 100)) : 0
-    const isFullyFunded = totalOccupied >= target || letter.status === 'FINANTAT' || letter.status === 'INCHIS'
+    const isFullyFunded =
+        !externallyFulfilled &&
+        (totalOccupied >= target || letter.status === "FINANTAT" || letter.status === "INCHIS")
     const isDonationDisabled =
+        externallyFulfilled ||
         !isApprovedPublic(letter.moderationStatus) ||
         isFullyFunded ||
-        ['IN_ACHIZITIE', 'LIVRAT', 'FINALIZAT', 'ANULAT', 'RESPINS', 'INCHIS'].includes(letter.status)
+        ["IN_ACHIZITIE", "LIVRAT", "FINALIZAT", "ANULAT", "RESPINS", "INCHIS", "EXTERN_FULFILLED"].includes(
+            letter.status
+        )
+    const directDonations = Math.max(0, paid - fundAllocated)
     const isVideo = letter.mediaType === 'VIDEO'
 
     const isManaging = canManageLetter(session, letter)
@@ -218,8 +235,13 @@ export default async function ScrisoarePage({ params }: { params: Promise<{ id: 
                 <div className="mb-10 pb-8 border-b border-slate-200">
                     <div className="flex flex-wrap gap-2 mb-4">
                         <Badge variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-200">{letter.category}</Badge>
-                        {letter.status === 'FINANTAT' && <Badge className="bg-emerald-100 text-emerald-800 border-none flex gap-1 items-center"><Sparkles className="w-3 h-3" /> Finanțat</Badge>}
-                        {letter.status === 'INCHIS' && <Badge className="bg-emerald-100 text-emerald-800 border-none">Livrat cu succes</Badge>}
+                        {externallyFulfilled && (
+                            <Badge className="bg-amber-100 text-amber-900 border-none">
+                                Dorință îndeplinită extern
+                            </Badge>
+                        )}
+                        {!externallyFulfilled && letter.status === 'FINANTAT' && <Badge className="bg-emerald-100 text-emerald-800 border-none flex gap-1 items-center"><Sparkles className="w-3 h-3" /> Finanțat</Badge>}
+                        {!externallyFulfilled && letter.status === 'INCHIS' && <Badge className="bg-emerald-100 text-emerald-800 border-none">Livrat cu succes</Badge>}
                         {activeClaim?.status === "PENDING" && activeClaim.expiresAt > new Date() ? (
                             <ReservedHoursTag expiresAt={activeClaim.expiresAt.toISOString()} />
                         ) : inDelivery ? (
@@ -376,6 +398,55 @@ export default async function ScrisoarePage({ params }: { params: Promise<{ id: 
                                 </div>
                                 <Progress value={percentage} className="h-3 mb-6 bg-slate-100" indicatorClassName={percentage >= 100 ? "bg-emerald-500" : "bg-blue-600"} />
 
+                                {externallyFulfilled ? (
+                                    <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl mb-6 text-sm text-amber-950 space-y-2">
+                                        <p className="font-bold">Dorință îndeplinită extern</p>
+                                        <p className="leading-relaxed">
+                                            Această dorință a fost îndeplinită direct de un donator.
+                                        </p>
+                                        {paid > 0 ? (
+                                            <p className="leading-relaxed">
+                                                Înainte ca dorința să fie îndeplinită, comunitatea contribuise cu{" "}
+                                                {formatCurrency(paid)}. Această sumă a fost transferată în Fondul
+                                                pentru alte dorințe, unde va fi folosită pentru alte nevoi
+                                                verificate.
+                                            </p>
+                                        ) : null}
+                                        <Link
+                                            href="/fond"
+                                            className="inline-flex font-semibold text-teal-800 hover:underline"
+                                        >
+                                            Vezi Fondul pentru alte dorințe →
+                                        </Link>
+                                    </div>
+                                ) : null}
+
+                                {fundAllocated > 0 ? (
+                                    <div className="bg-teal-50 border border-teal-100 p-4 rounded-xl mb-6 text-sm text-teal-950 space-y-2">
+                                        <p className="leading-relaxed">
+                                            Din suma strânsă, {formatCurrency(fundAllocated)} provin din Fondul
+                                            pentru alte dorințe.
+                                        </p>
+                                        <details className="text-teal-900">
+                                            <summary className="cursor-pointer font-medium">
+                                                Detaliu surse
+                                            </summary>
+                                            <ul className="mt-2 space-y-1 pl-1">
+                                                <li>Donații directe: {formatCurrency(directDonations)}</li>
+                                                <li>
+                                                    Fondul pentru alte dorințe: {formatCurrency(fundAllocated)}
+                                                </li>
+                                                <li className="font-semibold">
+                                                    Total: {formatCurrency(paid)}
+                                                </li>
+                                            </ul>
+                                        </details>
+                                        <Link href="/fond" className="inline-flex font-semibold hover:underline">
+                                            Vezi fondul →
+                                        </Link>
+                                    </div>
+                                ) : null}
+
                                 {activeRule && (
                                     <div className="bg-purple-50 border border-purple-100 p-4 rounded-xl mb-6 text-sm relative overflow-hidden">
                                         <div className="absolute top-0 right-0 p-2 opacity-10">
@@ -458,9 +529,21 @@ export default async function ScrisoarePage({ params }: { params: Promise<{ id: 
                                         ) : (
                                             <>
                                                 {isDonationDisabled ? (
-                                                    <div className="bg-slate-50 p-8 rounded-xl text-center text-slate-500 border border-slate-200">
+                                                    <div className="bg-slate-50 p-8 rounded-xl text-center text-slate-500 border border-slate-200 space-y-2">
                                                         <Heart className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                                        <p>Această dorință a fost îndeplinită sau închisă.</p>
+                                                        <p>
+                                                            {externallyFulfilled
+                                                                ? "Donațiile sunt închise — dorința a fost îndeplinită extern."
+                                                                : "Această dorință a fost îndeplinită sau închisă."}
+                                                        </p>
+                                                        {externallyFulfilled ? (
+                                                            <Link
+                                                                href="/fond"
+                                                                className="inline-flex text-sm font-semibold text-teal-700 hover:underline"
+                                                            >
+                                                                Vezi Fondul pentru alte dorințe →
+                                                            </Link>
+                                                        ) : null}
                                                     </div>
                                                 ) : (
                                                     <DonationModule

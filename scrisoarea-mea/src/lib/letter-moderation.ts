@@ -7,6 +7,7 @@ export const LetterModeration = {
     APPROVED: "approved",
     REJECTED: "rejected",
     FULFILLED: "fulfilled",
+    EXTERNALLY_FULFILLED: "externally_fulfilled",
     ARCHIVED: "archived",
 } as const
 
@@ -56,14 +57,28 @@ export function canPartnerEdit(status: string) {
 
 /** Letters visible on the public wishlist / public API. */
 export const publicWishlistWhere: Prisma.ScrisoareWhereInput = {
-    moderationStatus: LetterModeration.APPROVED,
-    status: { in: ["ACTIV", "FINANTAT", "IN_ACHIZITIE", "LIVRAT"] },
+    OR: [
+        {
+            moderationStatus: LetterModeration.APPROVED,
+            status: { in: ["ACTIV", "FINANTAT", "IN_ACHIZITIE", "LIVRAT"] },
+        },
+        {
+            moderationStatus: LetterModeration.EXTERNALLY_FULFILLED,
+        },
+        {
+            status: "EXTERN_FULFILLED",
+        },
+    ],
 }
 
 /** Public detail: approved (still fundraising / funded) or fulfilled impact pages use separate queries. */
 export const publicDetailWhere: Prisma.ScrisoareWhereInput = {
     moderationStatus: {
-        in: [LetterModeration.APPROVED, LetterModeration.FULFILLED],
+        in: [
+            LetterModeration.APPROVED,
+            LetterModeration.FULFILLED,
+            LetterModeration.EXTERNALLY_FULFILLED,
+        ],
     },
 }
 
@@ -73,12 +88,25 @@ export const MODERATION_LABELS: Record<string, string> = {
     approved: "Aprobată",
     rejected: "Respinsă",
     fulfilled: "Îndeplinită",
+    externally_fulfilled: "Îndeplinită extern",
     archived: "Arhivată",
     // legacy
     DRAFT: "Ciornă",
     SUBMITTED: "În verificare",
     APPROVED: "Aprobată",
     REJECTED: "Respinsă",
+}
+
+export function isExternallyFulfilled(letter: {
+    moderationStatus?: string | null
+    status?: string | null
+    externallyFulfilledAt?: Date | string | null
+}) {
+    return (
+        letter.moderationStatus === LetterModeration.EXTERNALLY_FULFILLED ||
+        letter.status === "EXTERN_FULFILLED" ||
+        Boolean(letter.externallyFulfilledAt)
+    )
 }
 
 export function publicTargetAmount(letter: {

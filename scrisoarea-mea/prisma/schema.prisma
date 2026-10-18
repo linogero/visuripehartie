@@ -196,7 +196,7 @@ model Scrisoare {
   approvedTargetAmount    Decimal?
   collectedAmount         Decimal         @default(0)
   
-  // draft | pending_review | approved | rejected | fulfilled | archived
+  // draft | pending_review | approved | rejected | fulfilled | externally_fulfilled | archived
   status                  String          @default("NOU") 
   moderationStatus        String          @default("draft") 
   rejectionReason         String?
@@ -208,9 +208,14 @@ model Scrisoare {
   approvedById            String?
   rejectedAt              DateTime?
   rejectedById            String?
+
+  // External fulfillment → general fund
+  externallyFulfilledAt   DateTime?
+  externallyFulfilledById String?
+  externalFulfillmentNote String?
   
   childLastName           String          
-  childCnpHash            String?         
+  childCnpHash            String?          
   
   institution             Institution     @relation(fields: [institutionId], references: [id])
   institutionId           String
@@ -223,6 +228,8 @@ model Scrisoare {
   proofs                  ProofMedia[]
   fulfillmentClaims       FulfillmentClaim[]
   updates                 Update[]
+  fundTransfersFrom       FundTransaction[] @relation("FundSourceLetter")
+  fundTransfersTo         FundTransaction[] @relation("FundDestinationLetter")
 
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
@@ -569,4 +576,45 @@ model SponsorProfile {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+/// Transparent general pot for money redirected from externally fulfilled wishes.
+model Fund {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  transactions FundTransaction[]
+}
+
+/// Immutable ledger for the general fund (prefer sum of rows over mutable balance).
+model FundTransaction {
+  id                  String   @id @default(uuid())
+  fundId              String
+  fund                Fund     @relation(fields: [fundId], references: [id])
+  /// external_fulfillment_transfer | fund_allocation_to_letter | late_donation_transfer
+  type                String
+  /// IN increases available balance; OUT decreases it
+  direction           String
+  amount              Decimal
+  sourceLetterId      String?
+  sourceLetter        Scrisoare? @relation("FundSourceLetter", fields: [sourceLetterId], references: [id])
+  destinationLetterId String?
+  destinationLetter   Scrisoare? @relation("FundDestinationLetter", fields: [destinationLetterId], references: [id])
+  note                String?
+  publicNote          String?
+  createdById         String?
+  createdAt           DateTime @default(now())
+
+  /// Optional stable key to prevent duplicate ledger rows (e.g. external_fulfillment:<letterId>).
+  idempotencyKey      String?  @unique
+
+  @@index([fundId])
+  @@index([type])
+  @@index([direction])
+  @@index([sourceLetterId])
+  @@index([destinationLetterId])
+  @@index([createdAt])
 }

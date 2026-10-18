@@ -170,6 +170,30 @@ export default async function HomePage() {
                 </section>
             )}
 
+            {/* Transparency — secondary to main wishlist CTA */}
+            <section className="py-14 border-y border-slate-100 bg-white">
+                <div className="container mx-auto px-4 max-w-3xl">
+                    <div className="rounded-2xl border border-teal-100 bg-teal-50/60 px-5 py-6 sm:px-8 sm:py-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="space-y-1.5 min-w-0">
+                            <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                                Fondul pentru alte dorințe
+                            </h2>
+                            <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
+                                Banii redirecționați din dorințe îndeplinite extern rămân vizibili și sunt
+                                folosiți pentru alte nevoi verificate.
+                            </p>
+                        </div>
+                        <Button
+                            asChild
+                            variant="outline"
+                            className="shrink-0 rounded-full border-teal-300 text-teal-800 hover:bg-teal-100 hover:text-teal-900"
+                        >
+                            <Link href="/fond">Vezi fondul</Link>
+                        </Button>
+                    </div>
+                </div>
+            </section>
+
             {/* Trust/FAQ */}
             <section className="py-24 bg-[var(--pastel-cream)]">
                 <div className="container mx-auto px-4 max-w-3xl">

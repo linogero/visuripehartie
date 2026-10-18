@@ -234,6 +234,15 @@ export default function DonationModule({
                 {loading ? "Se procesează..." : "Donează"}
             </Button>
 
+            <p className="text-xs text-slate-500 leading-relaxed text-left bg-slate-50 border border-slate-100 rounded-xl p-3">
+                Donația ta este destinată acestei dorințe. Dacă dorința este între timp îndeplinită
+                direct sau nu mai poate fi realizată, suma poate fi transferată în{" "}
+                <a href="/fond" className="text-teal-700 font-medium underline underline-offset-2">
+                    Fondul pentru alte dorințe
+                </a>{" "}
+                și folosită pentru o altă nevoie verificată.
+            </p>
+
             <p className="text-xs text-slate-400 text-center flex items-center justify-center gap-1">
                 <span className="text-green-500">🔒</span> Plată securizată prin Stripe.
             </p>

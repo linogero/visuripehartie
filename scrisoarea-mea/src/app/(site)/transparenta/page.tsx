@@ -1,3 +1,4 @@
+import Link from "next/link"
 import prisma from "@/lib/prisma"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -57,6 +58,15 @@ export default async function TransparentaPage() {
                                 <p className="text-sm text-slate-600 mb-4">
                                     Platforma Visuri pe hartie operează pe un model de <strong>100% Direct to Beneficiary</strong> pentru donațiile individuale.
                                     Costurile operaționale (hosting, dezvoltare, verificare) sunt acoperite separat prin granturi și sponsorizări dedicate sau contribuții recurente specifice ("Tips").
+                                </p>
+                                <p className="text-sm text-slate-600 mb-4">
+                                    Dacă o dorință este îndeplinită direct în afara platformei după ce au existat deja
+                                    donații, sumele strânse nu dispar: sunt transferate în{" "}
+                                    <Link href="/fond" className="text-teal-700 font-medium underline underline-offset-2">
+                                        Fondul pentru alte dorințe
+                                    </Link>{" "}
+                                    și folosite exclusiv pentru alte nevoi verificate. Donațiile originale rămân în
+                                    istoric; transferul este o mișcare separată, vizibilă public.
                                 </p>
                                 <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex">
                                     <div className="h-full bg-emerald-500 w-[95%]"></div>

@@ -36,6 +36,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                     <Link href="/admin/echipa" className="p-2 hover:bg-neutral-800 rounded">
                         Echipă
                     </Link>
+                    <Link href="/admin/fond" className="p-2 hover:bg-neutral-800 rounded">
+                        Fondul pentru alte dorințe
+                    </Link>
                     <Link
                         href="/admin/stats"
                         className="p-2 hover:bg-neutral-800 rounded opacity-50 cursor-not-allowed"

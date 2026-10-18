@@ -14,7 +14,17 @@ export function ScrisoareCard({ letter }: ScrisoareCardProps) {
     const percent = target > 0
         ? Math.min(100, Math.round((Number(letter.collectedAmount) / target) * 100))
         : 0
-    const isFunded = letter.status === 'FINANTAT' || letter.status === 'IN_ACHIZITIE' || letter.status === 'LIVRAT' || letter.status === 'INCHIS' || percent >= 100
+    const isExternallyFulfilled =
+        letter.moderationStatus === "externally_fulfilled" ||
+        letter.status === "EXTERN_FULFILLED" ||
+        Boolean(letter.externallyFulfilledAt)
+    const isFunded =
+        !isExternallyFulfilled &&
+        (letter.status === "FINANTAT" ||
+            letter.status === "IN_ACHIZITIE" ||
+            letter.status === "LIVRAT" ||
+            letter.status === "INCHIS" ||
+            percent >= 100)
     const institution = letter.institution
     const isVideo = letter.mediaType === 'VIDEO'
     const claims = Array.isArray(letter.fulfillmentClaims) ? letter.fulfillmentClaims : []
@@ -68,6 +78,13 @@ export function ScrisoareCard({ letter }: ScrisoareCardProps) {
                         ⚡ Dublăm bucuria
                     </div>
                 )}
+                {isExternallyFulfilled && (
+                    <div className="absolute inset-0 bg-amber-500/25 flex items-center justify-center z-10 backdrop-blur-[1px]">
+                        <span className="bg-amber-700 text-white px-3 py-1 rounded-full font-bold text-sm shadow-sm">
+                            Îndeplinită extern
+                        </span>
+                    </div>
+                )}
                 {isFunded && (
                     <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center z-10 backdrop-blur-[1px]">
                         <span className="bg-emerald-600 text-white px-3 py-1 rounded-full font-bold text-sm shadow-sm flex items-center gap-1">
@@ -114,6 +131,12 @@ export function ScrisoareCard({ letter }: ScrisoareCardProps) {
                         <span className="text-slate-900">{formatCurrency(Number(letter.collectedAmount))}</span>
                         <span>necesar {formatCurrency(target)}</span>
                     </div>
+                    {isExternallyFulfilled && Number(letter.collectedAmount) > 0 ? (
+                        <p className="text-[11px] text-amber-800 mt-2 leading-snug">
+                            {formatCurrency(Number(letter.collectedAmount))} strânși înainte de
+                            îndeplinirea externă. Suma a fost transferată în Fondul pentru alte dorințe.
+                        </p>
+                    ) : null}
                 </div>
 
                 <div className="mt-auto pt-2 pointer-events-auto">

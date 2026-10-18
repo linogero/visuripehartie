@@ -108,6 +108,12 @@ function TermsBody({ onOpen }: { onOpen?: (doc: LegalDoc) => void }) {
             </ul>
             <p>Visuri pe hartie nu reține comisioane din donațiile pentru dorințe.</p>
             <p>Contribuțiile pentru susținerea funcționării platformei (ex. „Susține platforma”) sunt opționale și clar separate de donațiile către copii.</p>
+            <p>
+                Dacă o dorință este îndeplinită direct în afara fluxului de donații al platformei, după ce au existat
+                deja contribuții financiare, sumele strânse nu se pierd: sunt transferate în Fondul pentru alte dorințe
+                și folosite exclusiv pentru alte nevoi verificate. Transferurile sunt înregistrate separat de donațiile
+                originale și pot fi consultate public pe pagina Fondului pentru alte dorințe.
+            </p>
 
             <h3>7. Îndeplinirea personală a dorințelor</h3>
             <p>În anumite cazuri, utilizatorii pot alege să îndeplinească personal o dorință, trimițând direct cadoul.</p>

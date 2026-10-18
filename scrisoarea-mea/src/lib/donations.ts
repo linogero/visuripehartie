@@ -4,7 +4,8 @@ import prisma from "@/lib/prisma"
 import { sendEmail } from "@/lib/email"
 import { absoluteUrl } from "@/lib/seo/site"
 import { applyMatchingToDonation } from "@/lib/matching"
-import { publicTargetAmount } from "@/lib/letter-moderation"
+import { isExternallyFulfilled, publicTargetAmount } from "@/lib/letter-moderation"
+import { transferLateDonationToFundInTx } from "@/lib/fund"
 import { getStripe } from "@/lib/stripe"
 
 const HOLD_MS = 30 * 60 * 1000
@@ -52,15 +53,25 @@ export async function fulfillPaidDonation(input: FulfillInput) {
         if (donation.scrisoare) {
             const target = publicTargetAmount(donation.scrisoare)
             const next = Number(donation.scrisoare.collectedAmount) + donorAmount
+            const externallyDone = isExternallyFulfilled(donation.scrisoare)
             await tx.scrisoare.update({
                 where: { id: donation.scrisoare.id },
                 data: {
                     collectedAmount: { increment: donorAmount },
-                    ...(donation.scrisoare.status === "ACTIV" && next >= target
+                    ...(!externallyDone &&
+                    donation.scrisoare.status === "ACTIV" &&
+                    next >= target
                         ? { status: "FINANTAT" }
                         : {}),
                 },
             })
+            if (externallyDone) {
+                await transferLateDonationToFundInTx(tx, {
+                    letterId: donation.scrisoare.id,
+                    donationId: donation.id,
+                    amount: donorAmount,
+                })
+            }
         }
         return true
     })
@@ -77,18 +88,31 @@ export async function fulfillPaidDonation(input: FulfillInput) {
         const after = await prisma.donation.findUnique({ where: { id: donation.id } })
         const matched = Number(after?.matchedAmount || 0)
         if (matched > 0 && donation.scrisoare) {
-            const letter = await prisma.scrisoare.findUnique({ where: { id: donation.scrisoare.id } })
-            if (letter) {
+            await prisma.$transaction(async (tx) => {
+                const letter = await tx.scrisoare.findUnique({ where: { id: donation.scrisoare!.id } })
+                if (!letter) return
                 const target = publicTargetAmount(letter)
                 const next = Number(letter.collectedAmount) + matched
-                await prisma.scrisoare.update({
+                const externallyDone = isExternallyFulfilled(letter)
+                await tx.scrisoare.update({
                     where: { id: letter.id },
                     data: {
                         collectedAmount: { increment: matched },
-                        ...(letter.status === "ACTIV" && next >= target ? { status: "FINANTAT" } : {}),
+                        ...(!externallyDone &&
+                        letter.status === "ACTIV" &&
+                        next >= target
+                            ? { status: "FINANTAT" }
+                            : {}),
                     },
                 })
-            }
+                if (externallyDone) {
+                    await transferLateDonationToFundInTx(tx, {
+                        letterId: letter.id,
+                        donationId: `${donation.id}:match`,
+                        amount: matched,
+                    })
+                }
+            })
         }
     } catch (error) {
         console.error("[stripe] matching failed", error)
