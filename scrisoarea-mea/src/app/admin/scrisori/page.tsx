@@ -6,43 +6,55 @@ import { formatCurrency } from "@/lib/utils"
 import { LetterModeration, MODERATION_LABELS, normalizeModerationStatus } from "@/lib/letter-moderation"
 import { parseWishlistItems, sumSubmittedEstimates } from "@/lib/letter-items"
 import { cn } from "@/lib/utils"
+import { DirectFulfillmentPanel } from "./direct-fulfillment-panel"
+import { CONFIRMED_CLAIM_STATUSES } from "@/lib/direct-fulfillment"
+
+const DIRECT_TAB = "direct" as const
 
 const TABS = [
     { id: LetterModeration.PENDING_REVIEW, label: "Pending Review", legacy: ["SUBMITTED"] },
     { id: LetterModeration.APPROVED, label: "Approved", legacy: ["APPROVED"] },
     { id: LetterModeration.REJECTED, label: "Rejected", legacy: ["REJECTED"] },
     { id: LetterModeration.FULFILLED, label: "Fulfilled", legacy: [] as string[] },
+    { id: DIRECT_TAB, label: "Îndeplinite direct", legacy: [] as string[] },
     { id: LetterModeration.ARCHIVED, label: "Archived", legacy: [] as string[] },
 ] as const
 
 export default async function AdminScrisoriPage({
     searchParams,
 }: {
-    searchParams: Promise<{ tab?: string }>
+    searchParams: Promise<{
+        tab?: string
+        q?: string
+        logistics?: string
+        institution?: string
+        courier?: string
+        missingAwb?: string
+        missingVideo?: string
+    }>
 }) {
     const params = await searchParams
-    const activeTab = params.tab && TABS.some((t) => t.id === params.tab)
-        ? params.tab
-        : LetterModeration.PENDING_REVIEW
+    const activeTab =
+        params.tab && TABS.some((t) => t.id === params.tab)
+            ? params.tab
+            : LetterModeration.PENDING_REVIEW
 
-    const tab = TABS.find((t) => t.id === activeTab)!
-    const statusFilter = [tab.id, ...tab.legacy]
-
-    const letters = await prisma.scrisoare.findMany({
-        where: { moderationStatus: { in: statusFilter } },
-        include: { institution: true },
-        orderBy: { createdAt: "asc" },
+    const directCount = await prisma.fulfillmentClaim.count({
+        where: { status: { in: [...CONFIRMED_CLAIM_STATUSES] } },
     })
 
     const counts = await Promise.all(
-        TABS.map(async (t) => ({
+        TABS.filter((t) => t.id !== DIRECT_TAB).map(async (t) => ({
             id: t.id,
             count: await prisma.scrisoare.count({
                 where: { moderationStatus: { in: [t.id, ...t.legacy] } },
             }),
         }))
     )
-    const countMap = Object.fromEntries(counts.map((c) => [c.id, c.count]))
+    const countMap: Record<string, number> = Object.fromEntries(
+        counts.map((c) => [c.id, c.count])
+    )
+    countMap[DIRECT_TAB] = directCount
 
     return (
         <div className="space-y-6">
@@ -73,8 +85,39 @@ export default async function AdminScrisoriPage({
                 ))}
             </div>
 
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-                <table className="w-full text-left text-sm">
+            {activeTab === DIRECT_TAB ? (
+                <DirectFulfillmentPanel
+                    search={{
+                        q: params.q,
+                        logistics: params.logistics,
+                        institution: params.institution,
+                        courier: params.courier,
+                        missingAwb: params.missingAwb,
+                        missingVideo: params.missingVideo,
+                    }}
+                />
+            ) : (
+                <ModerationTable activeTab={activeTab} />
+            )}
+        </div>
+    )
+}
+
+async function ModerationTable({ activeTab }: { activeTab: string }) {
+    const tab = TABS.find((t) => t.id === activeTab)
+    if (!tab || tab.id === DIRECT_TAB) return null
+    const statusFilter = [tab.id, ...tab.legacy]
+
+    const letters = await prisma.scrisoare.findMany({
+        where: { moderationStatus: { in: statusFilter } },
+        include: { institution: true },
+        orderBy: { createdAt: "asc" },
+    })
+
+    return (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm min-w-[640px]">
                     <thead className="bg-neutral-50 border-b">
                         <tr>
                             <th className="p-4">Child</th>
@@ -114,9 +157,7 @@ export default async function AdminScrisoriPage({
                                     <td className="p-4 text-neutral-600 max-w-[200px] truncate">
                                         {items.map((i) => i.name).join(", ") || l.wishList}
                                     </td>
-                                    <td className="p-4 font-mono">
-                                        {formatCurrency(submitted)}
-                                    </td>
+                                    <td className="p-4 font-mono">{formatCurrency(submitted)}</td>
                                     <td className="p-4 font-mono">
                                         {adminTarget != null ? (
                                             formatCurrency(adminTarget)

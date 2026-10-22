@@ -85,10 +85,13 @@ export async function submitAwb(claimId: string, awbNumber: string, awbProvider:
         data: {
             awbNumber: awb,
             awbProvider: provider,
-            status: 'SHIPPED',
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        }
+            status: "SHIPPED",
+            // NGO logistics starts after inbound ship; do not touch outbound fields
+            logisticsStatus: "AWAITING_GIFT",
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
     })
 
-    revalidatePath('/scrisori')
+    revalidatePath("/scrisori")
+    revalidatePath("/admin/scrisori?tab=direct")
 }

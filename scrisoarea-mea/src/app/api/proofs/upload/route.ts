@@ -8,10 +8,15 @@ const VIDEO_LIMIT = 100 * 1024 * 1024
 
 export async function POST(request: Request) {
     const session = await getSession()
-    if (!session || session.role !== "PARTNER" || !session.institutionId) {
+    if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    if (!session.emailVerified) {
+    const isAdmin = session.role === "ADMIN"
+    const isPartner = session.role === "PARTNER" && Boolean(session.institutionId)
+    if (!isAdmin && !isPartner) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    if (!isAdmin && !session.emailVerified) {
         return NextResponse.json({ error: "Email neverificat." }, { status: 403 })
     }
 

@@ -326,19 +326,36 @@ model ProofMedia {
 
 model FulfillmentClaim {
   id          String    @id @default(uuid())
-  status      String    @default("PENDING") 
+  /// PENDING | SHIPPED | COMPLETED | EXPIRED | CANCELED
+  status      String    @default("PENDING")
   expiresAt   DateTime
   donorEmail  String?
+  /// Incoming leg: Donator → ONG (never overwrite with outgoing fields)
   awbProvider String?
   awbNumber   String?
   awbFileUrl  String?
   notes       String?
+
+  /// NGO logistics: AWAITING_GIFT | RECEIVED_BY_NGO | SHIPPED_TO_INSTITUTION | DELIVERED_TO_INSTITUTION | VIDEO_PROOF_UPLOADED
+  logisticsStatus      String    @default("AWAITING_GIFT")
+  receivedByNgoAt      DateTime?
+  receivedByNgoById    String?
+  /// Outgoing leg: ONG → Instituție
+  outboundCourier      String?
+  outboundAwbNumber    String?
+  outboundShippedAt    DateTime?
+  outboundDeliveredAt  DateTime?
+  outboundInternalNote String?
+  logisticsUpdatedAt   DateTime?
+  logisticsUpdatedById String?
+
   scrisoare   Scrisoare @relation(fields: [scrisoareId], references: [id])
   scrisoareId String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   @@index([scrisoareId])
   @@index([status])
+  @@index([logisticsStatus])
 }
 
 model ActionLog {
